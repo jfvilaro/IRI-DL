@@ -12,6 +12,10 @@ class DatasetFactory:
         if dataset_name == 'cifar10':
             from src.data.cifar10 import Cifar10Dataset
             dataset = Cifar10Dataset(*args, **kwargs)
+        if dataset_name == 'n-mnist':
+            from src.data.nmnist import nmnistDataset
+            dataset = nmnistDataset(*args, **kwargs)
+
         else:
             raise ValueError("Dataset [%s] not recognized." % dataset_name)
 

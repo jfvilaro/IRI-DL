@@ -12,8 +12,16 @@
     "test_ids_file": "test_ids.txt"
   },
 
+  "n-mnist": {
+    "data_dir": "datasets/n-mnist",
+    "train_folder": "Train_small_set",
+    "val_folder": "Validation",
+    "test_folder": "Test_small_set"
+  },
+
+
   "dataset": {
-    "type": "cifar10",
+    "type": "n-mnist",
     "batch_size": 16,
     "img_nc": 3,
     "target_nc": 1,
