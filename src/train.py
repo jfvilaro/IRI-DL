@@ -19,10 +19,10 @@ class Train:
         self._tb_visualizer = TBVisualizer(self._opt)
 
         # prepare data
-        self._prepare_data()
+        self._prepare_data()  # Create data loaders and get dataset properties
 
         # check options
-        self._check_options()
+        self._check_options()  # Check if batch size for val and train are equal
 
         # create model
         model_type = self._opt["model"]["type"]
@@ -120,7 +120,7 @@ class Train:
 
             # train model
             self._model.set_input(train_batch)
-            self._model.optimize_parameters(keep_data_for_visuals=do_visuals)
+            self._model.optimize_parameters(i_epoch, keep_data_for_visuals=do_visuals)
 
             # update epoch info
             iter_procs_time += (time.time() - iter_after_read_time) / self._train_batch_size
@@ -166,6 +166,9 @@ class Train:
         self._tb_visualizer.plot_time(iter_read_time, iter_procs_time, total_steps)
         self._tb_visualizer.plot_histograms(self._model.get_current_histograms(), total_steps, is_train=True)
 
+        self._tb_visualizer.plot_scalars(self._model.get_current_dist_equal_gt(), total_steps, is_train=True)
+        self._tb_visualizer.plot_scalars(self._model.get_current_dist_diff_gt(), total_steps, is_train=True)
+
     def _display_visualizer_avg_epoch(self, epoch):
         e_train = mean_dictionary(self._epoch_train_e)
         e_val = mean_dictionary(self._epoch_val_e)
@@ -182,6 +185,10 @@ class Train:
 
         # evaluate self._opt.num_iters_validate epochs
         val_errors = dict()
+        accuracy = 0
+        val_total = 0
+        val_correct = 0
+
         with torch.no_grad():
             vis_batch_idx = np.random.randint(min(self._num_iters_validate, self._dataset_val_size))
             for i_val_batch, val_batch in enumerate(self._dataset_val):
@@ -197,6 +204,80 @@ class Train:
                 errors = self._model.get_current_errors()
                 val_errors = append_dictionaries(val_errors, errors)
 
+                if self._opt['model']['type'] == 'model1siamese': #If the model used is a model build to deal with siamese networks
+
+                    estim1 = self._model._estimate([self._model._input_img1, self._model._input_img2])
+                    estim2 = self._model._estimate([self._model._input_img2, self._model._input_img3])
+
+                    predicted1 = estim1.max(1)[1].detach().cpu().numpy()
+                    predicted2 = estim2.max(1)[1].detach().cpu().numpy()
+                    target1 = self._model._input_target1.detach().cpu().numpy()
+                    target2 = self._model._input_target2.detach().cpu().numpy()
+
+                    val_total = target1.size + target2.size
+                    val_correct = int(sum(predicted1 == target1)) +int(sum(predicted2 == target2))
+                    accuracy = round((val_correct / val_total) * 100, 2)
+
+                    TP = int(sum(predicted1 == target1))
+                    FP = int(sum(predicted1 != target1))
+                    TN = int(sum(predicted2 == target2))
+                    FN = int(sum(predicted2 != target2))
+
+                    if (TP+FP) == 0:
+
+                        # all the cases are predicted to be negative
+                        recall_pos = 0
+                        recall_neg = 1
+                        precision_pos = 0
+                        precision_neg = 1
+
+                    elif (TN+FN) == 0:
+
+                        # all the cases are predicted to be positive
+                        recall_pos = 1
+                        recall_neg = 0
+                        precision_pos = 1
+                        precision_neg = 0
+
+                    elif (TN+FP) == 0:
+
+                        # all the cases are TP or FN
+                        recall_pos = round((TP / (TP + FN)), 2)
+                        recall_neg = 0
+                        precision_pos = round((TP / (TP + FP)), 2)
+                        precision_neg = round((TN / (TN + FN)), 2)
+
+                    elif (TP+FN) == 0:
+
+                        # all the cases are TN or FP
+                        recall_pos = 0
+                        recall_neg = round((TN / (TN + FP)), 2)
+                        precision_pos = round((TP / (TP + FP)), 2)
+                        precision_neg = round((TN / (TN + FN)), 2)
+
+                    else:
+
+                        recall_pos = round((TP / (TP + FN)), 2)
+                        recall_neg = round((TN / (TN + FP)), 2)
+                        precision_pos = round((TP / (TP + FP)), 2)
+                        precision_neg = round((TN / (TN + FN)), 2)
+
+                elif self._opt['model']['type'] == 'model2siamese': #If the model used is a model build to deal with siamese networks
+
+                    print('model2siamese')
+                    # calcular la distancia entre descriptors per la validation
+
+                else:
+
+                    estim = self._model._estimate(self._model._input_img)
+
+                    predicted = estim.max(1)[1].detach().cpu().numpy()
+                    target = self._model._input_target.detach().cpu().numpy()
+
+                    val_total = target1.size
+                    val_correct = int(sum(predicted == target))
+                    accuracy = round((val_correct / val_total) * 100, 2)
+
                 # keep visuals
                 if keep_data_for_visuals:
                     self._tb_visualizer.display_current_results(self._model.get_current_visuals(), total_steps,
@@ -204,14 +285,42 @@ class Train:
                     self._tb_visualizer.plot_histograms(self._model.get_current_histograms(), total_steps,
                                                         is_train=False)
 
+                    #accuracy = round((val_correct / val_total) * 100, 2)
+                    accuracy_dict = self._model.get_current_accuracy(accuracy)
+                    print('i: ', total_steps, ', accuracy:', accuracy)
+                    self._tb_visualizer.plot_scalars(accuracy_dict, total_steps, is_train=False)
+
+                    if self._opt['model']['type'] == 'model1siamese':  # If the model used is a model build to deal with siamese networks
+
+                        precision_pos_dict = self._model.get_current_precision_pos(precision_pos)
+                        print('i: ', total_steps, ', precision_pos:', precision_pos)
+                        self._tb_visualizer.plot_scalars(precision_pos_dict, total_steps, is_train=False)
+
+                        precision_neg_dict = self._model.get_current_precision_neg(precision_neg)
+                        print('i: ', total_steps, ', precision_neg:', precision_neg)
+                        self._tb_visualizer.plot_scalars(precision_neg_dict, total_steps, is_train=False)
+
+                        recall_pos_dict = self._model.get_current_recall_pos(recall_pos)
+                        print('i: ', total_steps, ', recall_pos:', recall_pos)
+                        self._tb_visualizer.plot_scalars(recall_pos_dict, total_steps, is_train=False)
+
+                        recall_neg_dict = self._model.get_current_recall_neg(recall_neg)
+                        print('i: ', total_steps, ', recall_neg:', recall_neg)
+                        self._tb_visualizer.plot_scalars(recall_neg_dict, total_steps, is_train=False)
+
+
             # store error
             val_errors = mean_dictionary(val_errors)
             self._epoch_val_e = append_dictionaries(self._epoch_val_e, val_errors)
 
         # visualize
         t = (time.time() - val_start_time)
-        self._tb_visualizer.print_current_validate_errors(i_epoch, val_errors, t)
-        self._tb_visualizer.plot_scalars(val_errors, total_steps, is_train=False)
+
+        self._tb_visualizer.print_current_validate_errors(i_epoch, accuracy_dict, t)
+        self._tb_visualizer.plot_scalars(accuracy_dict, total_steps, is_train=False)
+
+        self._tb_visualizer.plot_scalars(self._model.get_current_dist_equal_gt(), total_steps, is_train=True)
+        self._tb_visualizer.plot_scalars(self._model.get_current_dist_diff_gt(), total_steps, is_train=True)
 
         # set model back to train
         self._model.set_train()

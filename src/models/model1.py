@@ -90,7 +90,7 @@ class Model1(BaseModel):
 
         return eval
 
-    def optimize_parameters(self, keep_data_for_visuals=False):
+    def optimize_parameters(self, curr_epoch, keep_data_for_visuals=False):
         if self._is_train:
 
             # calculate loss
@@ -144,6 +144,11 @@ class Model1(BaseModel):
         visuals = OrderedDict()
         visuals["1_estim_img"] = self._vis_input_img
         return visuals
+
+    def get_current_accuracy(self, accuracy):
+        loss_dict = OrderedDict()
+        loss_dict["accuracy_gt"] = accuracy
+        return loss_dict
 
     def save(self, epoch_label, save_type, do_remove_prev=True):
         # save networks
