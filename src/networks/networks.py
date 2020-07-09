@@ -12,9 +12,22 @@ class NetworksFactory:
         if network_name == 'resnet18':
             from .resnet18 import ResNet18
             network = ResNet18(*args, **kwargs)
+        elif network_name == 'resnet18_pretrained':
+            from .resnet18_pretrained import ResNet18_pretrained
+            network = ResNet18_pretrained(*args, **kwargs)
         elif network_name == 'vgg11':
             from .vgg11 import VGG11
             network = VGG11(*args, **kwargs)
+        elif network_name == 'siamesenet':
+            from .siamese import SiameseNet
+            network = SiameseNet(*args, **kwargs)
+        elif network_name == 'siamesenet2':
+            from .siamese_ES import SiameseNet
+            network = SiameseNet(*args, **kwargs)
+        elif network_name == 'siamesenet_3channels':
+            from .siamese_ES3 import SiameseNet
+            network = SiameseNet(*args, **kwargs)
+
         else:
             raise ValueError("Network %s not recognized." % network_name)
 

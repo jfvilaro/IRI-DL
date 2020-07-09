@@ -13,6 +13,22 @@ class ModelsFactory:
         if model_name == 'model1':
             from .model1 import Model1
             model = Model1(*args, **kwargs)
+        elif model_name == 'model2':
+                from .model2 import Model2
+                model = Model2(*args, **kwargs)
+        elif model_name == 'model3':
+                from .model3 import Model3
+                model = Model3(*args, **kwargs)
+        elif model_name == 'model1siamese':
+                from .model1siamese import Model1Siamese
+                model = Model1Siamese(*args, **kwargs)
+        elif model_name == 'model2siamese':
+                from .model2siamese import Model2Siamese
+                model = Model2Siamese(*args, **kwargs)
+        elif model_name == 'modelsaesiamese':
+                from .model_sae_siamese import ModelSAESiamese
+                model = ModelSAESiamese(*args, **kwargs)
+
         else:
             raise ValueError("Model %s not recognized." % model_name)
 
@@ -62,6 +78,9 @@ class BaseModel(object):
     def forward(self, keep_data_for_visuals=False):
         raise NotImplementedError
 
+    def descriptor(self, keep_data_for_visuals=False):
+        raise NotImplementedError
+
     # used in test time, no backprop
     def test(self):
         raise NotImplementedError
@@ -69,7 +88,7 @@ class BaseModel(object):
     def get_image_paths(self):
         return {}
 
-    def optimize_parameters(self):
+    def optimize_parameters(self, curr_epoch):
         raise NotImplementedError
 
     def get_current_visuals(self):
@@ -79,6 +98,9 @@ class BaseModel(object):
         return {}
 
     def get_current_scalars(self):
+        return {}
+
+    def get_current_accuracy(self):
         return {}
 
     def get_current_histograms(self):

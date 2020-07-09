@@ -50,7 +50,7 @@ class Model2Siamese(BaseModel):
         self._optimizer = torch.optim.SGD(self._reg.parameters(), lr=self._current_lr)
 
     def _init_losses(self):
-        self._criterion = torch.nn.MSELoss(reduction='sum').to(self._device_master)
+        #self._criterion = torch.nn.MSELoss(reduction='sum').to(self._device_master)
 
         # total_loss = torch.max(torch.Tensor([0, C-self._dist_diff]))
         self._criterion = torch.nn.MSELoss(size_average=None, reduce=None, reduction='mean')
@@ -147,12 +147,15 @@ class Model2Siamese(BaseModel):
         descriptor_2 = self._estimate(self._input_img2)
         descriptor_3 = self._estimate(self._input_img3)
 
-        descriptor_1_squared = torch.pow(descriptor_1, 2)
-        descriptor_2_squared = torch.pow(descriptor_2, 2)
-        descriptor_3_squared = torch.pow(descriptor_3, 2)
-
-        distance_12 = self._criterion(descriptor_1_squared, descriptor_2_squared)
-        distance_23 = self._criterion(descriptor_2_squared, descriptor_3_squared)
+        distance_12 = self._criterion(descriptor_1, descriptor_2)
+        distance_23 = self._criterion(descriptor_3, descriptor_2)
+        #
+        # descriptor_1_squared = torch.pow(descriptor_1, 2)
+        # descriptor_2_squared = torch.pow(descriptor_2, 2)
+        # descriptor_3_squared = torch.pow(descriptor_3, 2)
+        #
+        # distance_12 = self._criterion(descriptor_1_squared, descriptor_2_squared)
+        # distance_23 = self._criterion(descriptor_2_squared, descriptor_3_squared)
 
         C = self._opt['model']['constant_c']
 
@@ -176,9 +179,8 @@ class Model2Siamese(BaseModel):
         descriptor_1 = self._estimate(self._input_img1)
         descriptor_2 = self._estimate(self._input_img2)
 
-        dist_tensor = torch.norm(descriptor_1-descriptor_2, dim=1)
-
-        mean_dist = torch.mean(dist_tensor, 0)
+        #dist_tensor = torch.norm(descriptor_1-descriptor_2, dim=1)
+        #mean_dist = torch.mean(dist_tensor, 0)
 
         distance_12 = self._criterion(descriptor_1, descriptor_2)
 
@@ -207,7 +209,7 @@ class Model2Siamese(BaseModel):
         if estimate_loss:
             self._dist_diff = distance_23
             max_loss = torch.cat([torch.Tensor([0]).to(self._device_master), torch.Tensor([C]).to(self._device_master)-torch.unsqueeze(distance_23,0)])
-            total_loss = torch.max(max_loss) #second term should be max(0, C-dist2)
+            total_loss = torch.max(max_loss)  # Second term should be max(0, C-dist2)
         else:
             total_loss = -1
 
@@ -244,8 +246,8 @@ class Model2Siamese(BaseModel):
 
         # Plot images pairs
 
-        new_img1 = concatenate_pair_data(imga, imgb, add_border_2_impair)
-        new_img2 = concatenate_pair_data(imgb, imgc, add_border_2_impair)
+        # new_img1 = concatenate_pair_data(imga, imgb, add_border_2_impair)
+        # new_img2 = concatenate_pair_data(imgb, imgc, add_border_2_impair)
 
 
         #vis_img1 = util.tensor2im(new_img1.detach(), unnormalize=True, to_numpy=True)
@@ -285,25 +287,25 @@ class Model2Siamese(BaseModel):
         loss_dict["accuracy_gt"] = accuracy
         return loss_dict
 
-    def get_current_precision_neg(self, precision):
-        loss_dict = OrderedDict()
-        loss_dict["precision_neg_gt"] = precision
-        return loss_dict
-
-    def get_current_precision_pos(self, precision):
-        loss_dict = OrderedDict()
-        loss_dict["precision_pos_gt"] = precision
-        return loss_dict
-
-    def get_current_recall_neg(self, recall):
-        loss_dict = OrderedDict()
-        loss_dict["recall_neg_gt"] = recall
-        return loss_dict
-
-    def get_current_recall_pos(self, recall):
-        loss_dict = OrderedDict()
-        loss_dict["recall_pos_gt"] = recall
-        return loss_dict
+    # def get_current_precision_neg(self, precision):
+    #     loss_dict = OrderedDict()
+    #     loss_dict["precision_neg_gt"] = precision
+    #     return loss_dict
+    #
+    # def get_current_precision_pos(self, precision):
+    #     loss_dict = OrderedDict()
+    #     loss_dict["precision_pos_gt"] = precision
+    #     return loss_dict
+    #
+    # def get_current_recall_neg(self, recall):
+    #     loss_dict = OrderedDict()
+    #     loss_dict["recall_neg_gt"] = recall
+    #     return loss_dict
+    #
+    # def get_current_recall_pos(self, recall):
+    #     loss_dict = OrderedDict()
+    #     loss_dict["recall_pos_gt"] = recall
+    #     return loss_dict
 
     def save(self, epoch_label, save_type, do_remove_prev=True):
         # save networks

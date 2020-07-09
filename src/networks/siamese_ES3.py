@@ -13,7 +13,7 @@ class SiameseNet(NetworkBase):
         kernel_size_2 = 3
         output_size = image_size - (kernel_size_1-1) - (kernel_size_2-1)
 
-        self.conv1 = nn.Conv2d(1, 64, kernel_size_1)
+        self.conv1 = nn.Conv2d(3, 64, kernel_size_1)
         self.conv2 = nn.Conv2d(64, 128, kernel_size_2)
 
         self.linear1 = nn.Linear(output_size*output_size*128, descriptor_size)
