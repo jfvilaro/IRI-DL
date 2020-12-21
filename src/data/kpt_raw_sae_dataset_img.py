@@ -14,11 +14,18 @@ import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import glob
 from PIL import Image
+import re
+
+from collections import Counter
+
+def natural_key(string_):
+    """See http://www.codinghorror.com/blog/archives/001018.html"""
+    return [int(s) if s.isdigit() else s for s in re.split(r'(\d+)', string_)]
 
 
-class eventSurfacesDataset(DatasetBase):
+class eventRawSurfacesDataset(DatasetBase):
     def __init__(self, opt, is_for, subset, transform, dataset_type):
-        super(eventSurfacesDataset, self).__init__(opt, is_for, subset, transform, dataset_type)
+        super(eventRawSurfacesDataset, self).__init__(opt, is_for, subset, transform, dataset_type)
         self._name = 'event-surfaces-dataset'
 
         # init meta
@@ -72,6 +79,9 @@ class eventSurfacesDataset(DatasetBase):
         self._kpt_names = []
         self._kpt_num = []
 
+        self._kpt_samples_data_pol=[]
+        self._kpt_samples_data_time=[]
+
         self._data = []
         self._targets = []
         self._mask = []
@@ -82,14 +92,30 @@ class eventSurfacesDataset(DatasetBase):
 
         for current_filename in self.data_filenames:
 
-            data_filepath = os.path.join(self._root, self._data_file, current_filename)
+            data_filepath = os.path.join(self._root, current_filename, 'raw',)
             id = id + 1
             print(str(id)+' '+current_filename)
 
-            kpts_name_list = os.listdir(os.path.join(self._root, current_filename, self._sae_type))
+            #Save keypoint names and numberof keypoints per stream
+            kpts_name_list = os.listdir(os.path.join(self._root, current_filename,'raw'))
+            kpts_name_list = [i for i in kpts_name_list if 'kpt_' in i]
+            kpts_name_list = sorted(kpts_name_list, key=natural_key)
             self._kpt_names.append(kpts_name_list)
             self._kpt_num.append(kpts_name_list.__len__())
             self._dataset_size = self._dataset_size + kpts_name_list.__len__()
+
+            kpt_samples_data_pol = dict.fromkeys(kpts_name_list,[])
+            kpt_samples_data_time = dict.fromkeys(kpts_name_list, [])
+
+            for current_kpt_filename in kpts_name_list:
+
+                # Save each sample pol
+                kpt_samples_data_pol[current_kpt_filename] = np.loadtxt(os.path.join(data_filepath,current_kpt_filename,'kpt_SAE_polarity.txt'), delimiter=",").astype(int)
+                # Save each sample time
+                kpt_samples_data_time[current_kpt_filename] = np.loadtxt( os.path.join(data_filepath, current_kpt_filename, 'kpt_event_ts.txt'), delimiter=",")
+
+            self._kpt_samples_data_pol.append(kpt_samples_data_pol)
+            self._kpt_samples_data_time.append(kpt_samples_data_time)
 
         self._dataset_size = self._dataset_size * arbitrary_factor
 
@@ -100,53 +126,45 @@ class eventSurfacesDataset(DatasetBase):
         # Select 2 different classes randomly (rnd_cls1 and rnd_cls2)
         if num_of_classes == 0:
             print('Error: num_of_classes = 0')
+        if num_of_classes < 2:
+            print('error_sample')
 
-        only_selected_classes = self._opt['dataset']['only_selected_classes']
+        kpts_list = range(0, self._kpt_names[current_stream_num].__len__())
+        rnd_cls1, rnd_cls2 = random.sample(kpts_list, 2)
 
-        if only_selected_classes:  # Predifined_Classes
-            # classes_list = [2, 10, 15]
-            # rnd_cls1, rnd_cls2 = random.sample(classes_list, 2)
-            rnd_cls1 = random.sample(range(0, num_of_classes), 1)[0]
-            # Load mask_data
-            #valid_kpts = mask_data[:, :, 0]
-            #classes_list = np.where(valid_kpts[rnd_cls1] <= 200)[0].tolist()
-            #rnd_cls2 = random.sample(classes_list, 1)[0]
-        else:
-            if num_of_classes < 2:
-                print('error_sample')
-            rnd_cls1, rnd_cls2 = random.sample(range(0, num_of_classes), 2)
+        rnd_cls1_name = self._kpt_names[current_stream_num][rnd_cls1] # Kpt 1 name
+        rnd_cls2_name = self._kpt_names[current_stream_num][rnd_cls2] # Kpt 2 name
+
+        data_pol_cls1 = self._kpt_samples_data_pol[current_stream_num][rnd_cls1_name]
+        data_pol_cls2 = self._kpt_samples_data_pol[current_stream_num][rnd_cls2_name]
+
+        data_time_cls1 = self._kpt_samples_data_time[current_stream_num][rnd_cls1_name]
+        data_time_cls2 = self._kpt_samples_data_time[current_stream_num][rnd_cls2_name]
+
+
+        if rnd_cls1 > self._kpt_names[current_stream_num].__len__() or rnd_cls2 > self._kpt_names[current_stream_num].__len__()  :
+            print('error')
 
         # Select 2 samples of rnd_cls1 and one of a rnd_cls2
 
-        anchor_class_path = os.path.join(self._root, self.data_filenames[current_stream_num], self._sae_type, self._kpt_names[current_stream_num][rnd_cls1])
-        negative_class_path = os.path.join(self._root, self.data_filenames[current_stream_num], self._sae_type,self._kpt_names[current_stream_num][rnd_cls2])
+        anchor_class_path = os.path.join(self._root, self.data_filenames[current_stream_num],'raw', rnd_cls1_name)
+        negative_class_path = os.path.join(self._root, self.data_filenames[current_stream_num],'raw',rnd_cls2_name)
 
-        # Select rnd_cls1 subclass randomly
-        subclasses_file_a = np.load(os.path.join(anchor_class_path, 'subclasses.npy'), allow_pickle=True)
-        num_of_subclasses_a = subclasses_file_a.shape[0]
-        rnd_subcls = random.sample(range(0, num_of_subclasses_a), 1)[0]
+        # Select rnd_cls1 sample randomly
+        num_of_samples_a = data_time_cls1.size
+        rnd_smpls_a = random.sample(range(0, num_of_samples_a), 2)
+        samples_list_a = [line.rstrip() for line in open( os.path.join(self._root, self.data_filenames[current_stream_num], 'raw', rnd_cls1_name, 'kpt_files.txt'))]
 
         # Select two random samples from the random subclass
-        num_of_subsamples_a = subclasses_file_a[rnd_subcls].shape[0]
-        rnd_subsmpl1, rnd_subsmpl2 = random.sample(range(0, num_of_subsamples_a), 2)
-        samples_list_a = [line.rstrip() for line in open(os.path.join(self._root, self.data_filenames[current_stream_num], self._sae_type, self._kpt_names[current_stream_num][rnd_cls1],'kpt_files.txt'))]
-        #samples_list_a = glob.glob(os.path.join(self._root, self.data_filenames[current_stream_num], self._sae_type, self._kpt_names[current_stream_num][rnd_cls1],'*.npy'))
 
         # Select rnd_cls2 subclass randomly
-        subclasses_sample_n = np.load(os.path.join(self._root, self.data_filenames[current_stream_num], self._sae_type, self._kpt_names[current_stream_num][rnd_cls2], 'subclasses.npy'),allow_pickle=True)
-        num_of_subclasses_n = subclasses_sample_n.shape[0]
-        rnd_subcls2 = random.sample(range(0, num_of_subclasses_n), 1)[0]
+        num_of_samples_n = data_time_cls2.size
+        rnd_smpl_n = random.sample(range(0, num_of_samples_n), 1)[0]
+        samples_list_n = [line.rstrip() for line in open(os.path.join(self._root, self.data_filenames[current_stream_num],'raw',self._kpt_names[current_stream_num][rnd_cls2], 'kpt_files.txt'))]
 
-        # Select one random sample from the random subclass
-        num_of_subsamples_n = subclasses_sample_n[rnd_subcls2].shape[0]
-        rnd_subsmpl3 = random.sample(range(0, num_of_subsamples_n), 1)[0]
-        samples_list_n = [line.rstrip() for line in open(os.path.join(self._root, self.data_filenames[current_stream_num], self._sae_type, self._kpt_names[current_stream_num][rnd_cls2], 'kpt_files.txt'))]
-        #samples_list_n = glob.glob(os.path.join(self._root, self.data_filenames[current_stream_num], self._sae_type, self._kpt_names[current_stream_num][rnd_cls2], '*.npy'))
-
-
-        img_name_1 = os.path.join(self._root, self.data_filenames[current_stream_num], self._sae_type, self._kpt_names[current_stream_num][rnd_cls1], samples_list_a[rnd_subsmpl1])
-        img_name_2 = os.path.join(self._root, self.data_filenames[current_stream_num], self._sae_type, self._kpt_names[current_stream_num][rnd_cls1], samples_list_a[rnd_subsmpl2])
-        img_name_3 = os.path.join(self._root, self.data_filenames[current_stream_num], self._sae_type, self._kpt_names[current_stream_num][rnd_cls2], samples_list_n[rnd_subsmpl3])
+        img_name_1 = os.path.join(self._root, self.data_filenames[current_stream_num], 'raw', self._kpt_names[current_stream_num][rnd_cls1], samples_list_a[rnd_smpls_a[0]])
+        img_name_2 = os.path.join(self._root, self.data_filenames[current_stream_num], 'raw', self._kpt_names[current_stream_num][rnd_cls1], samples_list_a[rnd_smpls_a[1]])
+        img_name_3 = os.path.join(self._root, self.data_filenames[current_stream_num], 'raw', self._kpt_names[current_stream_num][rnd_cls2], samples_list_n[rnd_smpl_n])
 
         # img_1 = Image.open(img_name_1)
         # img_2 = Image.open(img_name_2)
