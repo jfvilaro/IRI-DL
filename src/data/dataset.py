@@ -12,27 +12,9 @@ class DatasetFactory:
         if dataset_name == 'cifar10':
             from src.data.cifar10 import Cifar10Dataset
             dataset = Cifar10Dataset(*args, **kwargs)
-        elif dataset_name == 'n-mnist':
-            from src.data.nmnist import nmnistDataset
-            dataset = nmnistDataset(*args, **kwargs)
-        elif dataset_name == 'snake-dataset':
-            from src.data.snake_dataset import SnakeDataset
-            dataset = SnakeDataset(*args, **kwargs)
-        elif dataset_name == 'event-surfaces-dataset':
-            from src.data.event_surfaces_dataset import eventSurfacesDataset
-            dataset = eventSurfacesDataset(*args, **kwargs)
-        elif dataset_name == 'event-surfaces-dataset_joined':
-            from src.data.event_surfaces_dataset_joined_traj import eventSurfacesDataset
-            dataset = eventSurfacesDataset(*args, **kwargs)
-        elif dataset_name == 'kpt-sae-dataset':
-            from src.data.kpt_sae_dataset import eventSurfacesDataset
-            dataset = eventSurfacesDataset(*args, **kwargs)
-        elif dataset_name == 'kpt-sae-dataset-img':
-            from src.data.kpt_sae_dataset_img import eventSurfacesDataset
-            dataset = eventSurfacesDataset(*args, **kwargs)
-        elif dataset_name == 'kpt-sae-dataset-img3':
-            from src.data.kpt_sae_dataset_img3 import eventSurfacesDataset
-            dataset = eventSurfacesDataset(*args, **kwargs)
+        elif dataset_name == 'kpt-raw-sae-dataset-img':
+            from src.data.kpt_raw_sae_dataset_img import eventRawSurfacesDataset
+            dataset = eventRawSurfacesDataset(*args, **kwargs)
         else:
             raise ValueError("Dataset [%s] not recognized." % dataset_name)
 

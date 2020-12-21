@@ -19,15 +19,8 @@ class NetworksFactory:
             from .vgg11 import VGG11
             network = VGG11(*args, **kwargs)
         elif network_name == 'siamesenet':
-            from .siamese import SiameseNet
-            network = SiameseNet(*args, **kwargs)
-        elif network_name == 'siamesenet2':
             from .siamese_ES import SiameseNet
             network = SiameseNet(*args, **kwargs)
-        elif network_name == 'siamesenet_3channels':
-            from .siamese_ES3 import SiameseNet
-            network = SiameseNet(*args, **kwargs)
-
         else:
             raise ValueError("Network %s not recognized." % network_name)
 
