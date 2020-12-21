@@ -1,0 +1,69 @@
+{
+   "event-surfaces-dataset": {
+    "data_dir":"/home/jferrandis/Datasets/ESIM_planar_renderer_dataset/output_datasets/DIV2K_800_ICRA_raw",
+    "train_file": "/home/jferrandis/code/IRI-DL/experiments/experiment_raw/Train.txt",
+    "val_file": "/home/jferrandis/code/IRI-DL/experiments/experiment_raw/Validation.txt",
+    "test_file": "/home/jferrandis/code/IRI-DL/experiments/experiment_raw/Test.txt",
+    "sae_type": "num_events",
+    "window_size": 0
+  },
+
+
+ "dataset": {
+    "type": "kpt-raw-sae-dataset-img",
+    "batch_size": 64,
+    "img_nc": 1,
+    "target_nc": 1,
+    "image_size": 15,
+    "serial_batches": false,
+    "drop_last_batch": true,
+    "n_threads": 3,
+    "mining_factor": 5,
+    "only_selected_classes": false,
+    "split_polarity": false
+  },
+
+  "networks": {
+    "reg": {
+      "type": "siamesenet",
+        "hyper_params": {
+        "num_classes": 2,
+        "descriptor_size":512,
+	"image_size": 15
+      }
+    }
+  },
+
+ "model": {
+    "load_epoch": -1,
+    "type": "ModelSiameseRawSAE",
+    "master_gpu": 0,
+    "reg_gpus": [0],
+    "constant_c":1
+  },
+
+  "train": {
+    "nepochs_no_decay": 80,
+    "nepochs_decay": 40,
+    "reg_lr": 0.1,
+    "num_iters_validate": 10
+  },
+
+
+ "transforms_train": ["num_events","to_tensor"],
+ "transforms_val": ["num_events", "to_tensor"],
+ "transforms_test": ["num_events", "to_tensor"],
+ "transforms": {
+
+    "num_events": {
+      "type": "num_events",
+      "general_args": {"window_size":60},
+      "perkey_args": {
+        "img1": {},
+	"img2": {},
+	"img3": {}
+      }
+  }
+}
+
+}
