@@ -13,21 +13,9 @@ class ModelsFactory:
         if model_name == 'model1':
             from .model1 import Model1
             model = Model1(*args, **kwargs)
-        elif model_name == 'model2':
-                from .model2 import Model2
-                model = Model2(*args, **kwargs)
-        elif model_name == 'model3':
-                from .model3 import Model3
-                model = Model3(*args, **kwargs)
-        elif model_name == 'model1siamese':
-                from .model1siamese import Model1Siamese
-                model = Model1Siamese(*args, **kwargs)
-        elif model_name == 'model2siamese':
-                from .model2siamese import Model2Siamese
-                model = Model2Siamese(*args, **kwargs)
-        elif model_name == 'modelsaesiamese':
-                from .model_sae_siamese import ModelSAESiamese
-                model = ModelSAESiamese(*args, **kwargs)
+        elif model_name == 'ModelSiameseRawSAE':
+                from .model_siamese_raw_sae import ModelSiameseRawSAE
+                model = ModelSiameseRawSAE(*args, **kwargs)
 
         else:
             raise ValueError("Model %s not recognized." % model_name)

@@ -22,6 +22,15 @@ class TransformsFactory:
         elif transform_name == "rand_scale_n_rotate":
             from .rand_scale_n_rotate import RandScaleNRotate
             network = RandScaleNRotate(perkey_args, general_args)
+        elif transform_name == "sits":
+            from .sits import SITS
+            network = SITS(perkey_args, general_args)
+        elif transform_name == "edecay":
+            from .edecay import ExponentialDecaySAE
+            network = ExponentialDecaySAE(perkey_args, general_args)
+        elif transform_name == "num_events":
+            from .numwindowofevents import WindowNumberSAE
+            network = WindowNumberSAE(perkey_args, general_args)
         else:
             raise ValueError("Transform %s not recognized." % transform_name)
 

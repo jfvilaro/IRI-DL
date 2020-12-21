@@ -14,18 +14,38 @@
 
   "n-mnist": {
     "data_dir": "datasets/n-mnist",
-    "train_folder": "Train_small_set",
-    "val_folder": "Validation",
-    "test_folder": "Test_small_set"
+    "train_file": "train_small_set.npy",
+    "val_file": "validation_small_set.npy",
+    "test_file": "test_small_set.npy"
   },
 
+ "snake-dataset": {
+    "data_dir": "datasets/snake_dataset/images",
+    "train_folder": "Train_subset",
+    "val_folder": "Test_subset",
+    "test_folder": "Test_subset"
+  },
+
+ "event-surfaces-dataset": {
+    "data_dir": "/home/jferrandis/Datasets/ESIM_planar_renderer_dataset/events_pc_data/data_classes",
+    "train_folder": "Train_subset_1000",
+    "val_folder": "Val_subset_1000",
+    "test_folder": "test_subset_1000"
+  },
+
+  "event-surfaces-dataset_joined": {
+    "data_dir": "/home/jferrandis/Datasets/ESIM_planar_renderer_dataset/events_pc_data/data_classes",
+    "train_folder": "join_2/Train_join_2",
+    "val_folder": "join_2/Validation_join_2",
+    "test_folder": "join_2/Test_join_2"
+  },
 
   "dataset": {
-    "type": "n-mnist",
-    "batch_size": 16,
-    "img_nc": 3,
+    "type": "event-surfaces-dataset",
+    "batch_size": 64,
+    "img_nc": 1,
     "target_nc": 1,
-    "image_size": 32,
+    "image_size": 256,
     "serial_batches": false,
     "drop_last_batch": true,
     "n_threads": 1
@@ -45,15 +65,16 @@
 
   "model": {
     "load_epoch": -1,
-    "type": "model1",
+    "type": "model1siamese",
     "master_gpu": 0,
     "reg_gpus": [0]
   },
 
+
   "train": {
-    "nepochs_no_decay": 10,
-    "nepochs_decay": 90,
-    "reg_lr": 0.1,
+    "nepochs_no_decay": 20,
+    "nepochs_decay": 20,
+    "reg_lr": 0.01,
     "num_iters_validate": 10
   },
 
@@ -65,15 +86,17 @@
 
   "networks": {
     "reg": {
-      "type": "resnet18",
+      "type": "resnet18_pretrained",
       "hyper_params": {
-        "num_classes": 10
+        "num_classes": 45
       }
     }
   },
 
-  "transforms_train": ["horz_flip", "normalize", "to_tensor"],
-  "transforms_val": ["horz_flip", "normalize", "to_tensor"],
+  "descriptor":{},
+
+  "transforms_train": ["normalize","to_tensor"],
+  "transforms_val": ["normalize", "to_tensor"],
   "transforms_test": ["normalize", "to_tensor"],
   "transforms": {
     "to_tensor": {
@@ -86,12 +109,39 @@
     "normalize": {
       "type": "normalize",
       "general_args": {
-        "mean": [0.485, 0.456, 0.406],
-        "std": [0.229, 0.224, 0.225]
+        "mean": [0.5, 0.5, 0.5],
+        "std": [0.5, 0.5, 0.5]
       },
       "perkey_args": {
         "img": {}
       }
+    },
+    "sits": {
+      "type": "sits",
+      "general_args": {},
+      "perkey_args": {
+        "img1": {},
+	"img2": {},
+	"img3": {}
+      }
+    },
+    "edecay": {
+      "type": "edecay",
+      "general_args": {"tau":1000},
+      "perkey_args": {
+        "img1": {},
+	"img2": {},
+	"img3": {}
+      }    
+    },
+    "num_events": {
+      "type": "num_events",
+      "general_args": {"window_size":60},
+      "perkey_args": {
+        "img1": {},
+	"img2": {},
+	"img3": {}
+      }    
     },
     "horz_flip": {
       "type": "rand_horz_flip",
